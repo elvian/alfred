@@ -1,33 +1,41 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
+import json
 
-def getSoup():
-	html = urlopen("http://m.weather.gov.hk/report.htm")
-	soup = BeautifulSoup(html)
-	return soup
+def getJson():
+	url = "http://www.hko.gov.hk/wxinfo/json/one_json.xml"
+	jsonDic = json.loads(urlopen(url).read().decode('utf-8'))
+	return jsonDic
 
-def getTemperature(summaryBlock):
-	temperature = summaryBlock.split("Temp")[1].split("°")[0].strip()
+def getTemperature(jsonArray):
+	temperature = jsonArray["hko"]["Temperature"]
 	return temperature
 	
-def getHumidity(summaryBlock):
-	humidity = summaryBlock.split("RH")[1].split("%")[0].strip()
+def getHumidity(jsonArray):
+	humidity = jsonArray["hko"]["RH"]
 	return humidity
 	
-def getUV(summaryBlock):
-	uv = summaryBlock.split("UV Index")[1].split(" ")[1].strip()
-	return uv
+def getCurrentUV(jsonArray):
+	currentUV = jsonArray["RHRREAD"]["UVIndex"]
+	return currentUV
+
+def getForecastUV(jsonArray):
+	forecastUV = jsonArray["FUV"]["ForecastTimeInfoMaxUV"]
+	return forecastUV
 
 def getWeatherData():
-	soup = getSoup()
-	summaryBlock = soup.findAll('td', {'class' : 'list'})[0].text
+	jsonArray = getJson()
+	
 	data = {}
-	data['temperature'] = getTemperature(summaryBlock)
-	data['humidity'] = getHumidity(summaryBlock)
-	data['uv'] = getUV(summaryBlock)
+	data['temperature'] = getTemperature(jsonArray)
+	data['humidity'] = getHumidity(jsonArray)
+	data['uv'] = getCurrentUV(jsonArray)
+	data['fuv'] = getForecastUV(jsonArray)
 	return data
 	
-data = getWeatherData()
-print(data['temperature'] + " " + data['humidity'] + " " + data['uv'])
+def testModule():
+	data = getWeatherData()
+	print(data['temperature'] + " " + data['humidity'] + " " + data['uv'] + " " + data['fuv'])

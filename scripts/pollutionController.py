@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
 
 def getSoupAQHI():
 	html = urlopen("http://www.aqhi.gov.hk/en/aqhi/past-24-hours-aqhi45fd.html?stationid=80")
-	soup = BeautifulSoup(html)
+	soup = BeautifulSoup(html, "lxml")
 	return soup
 
 def getLatestAQHI(dataTable):
@@ -13,23 +14,25 @@ def getLatestAQHI(dataTable):
 	aqhi = {}
 	aqhi['dateTime'] = aqhiTable[0].text
 	aqhi['index'] = aqhiTable[1].text
-	
 	return aqhi
 
-def getSoupAQICN():
-	html = urlopen("http://aqicn.org/city/hongkong/central/western/m/")
-	soup = BeautifulSoup(html)
-	return soup
+def getRawAQICN():
+	source = urlopen("http://aqicn.org/?city=HongKong/Central/Western&widgetscript&lang=en&size=xsmall&id=56d839cf2ad376.29520771")
+	source = source.read().decode('utf-8')
+	return source
 
-def getLatestAQICN(dataTable):
-	aqi = dataTable.find('div', {'class' : 'aqi'}).text
+def getLatestAQICN(source):
+	aqi = source.split("Air Pollution.")[1]
+	aqi = aqi.split("title")[1]
+	aqi = aqi.split("</div>")[0]
+	aqi = aqi.split(">")[1]
 	
-	aqits = dataTable.find('div', {'class' : 'headline item'}).findAll('div')[2].text
-	aqits = aqits.split(" on ")[1].strip()
-	
+	aqits = source.split("Updated on ")[1].strip()
+	aqits = aqits.split("<")[0]
+
 	aqhiData = {}
-	aqhiData['dateTime'] = aqits
 	aqhiData['index'] = aqi
+	aqhiData['dateTime'] = aqits
 	
 	return aqhiData 
 	
@@ -38,13 +41,16 @@ def getPollutionData():
 	dataTableAQHI = soupAQHI.find('table', {'id' : 'dd_stnh24_table'})
 	aqhi = getLatestAQHI(dataTableAQHI)
 	
-	soupAQICN = getSoupAQICN()
-	dataTableAQICN = soupAQICN.find('div', {'id' : 'header'})
-	aqicn = getLatestAQICN(dataTableAQICN)
+	rawAQICN = getRawAQICN()
+	aqicn = getLatestAQICN(rawAQICN)
 	
 	data = {}
-	data['AQHI'] = aqhi
-	data['AQICN'] = aqicn
+	data['AQHI'] = aqhi['index']
+	data['AQHITS'] = aqhi['dateTime']
+	data['AQICN'] = aqicn['index']
+	data['AQICNTS'] = aqicn['dateTime']
 	return data
-	
-data = getPollutionData()
+
+def testModule():
+	data = getPollutionData()
+	print(data['AQHI']  + " " + data['AQHITS'] + " " + data['AQICN'] + " " + data['AQICNTS'])
